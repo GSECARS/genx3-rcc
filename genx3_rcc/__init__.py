@@ -11,13 +11,21 @@
 
 from argparse import ArgumentParser
 
+from genx3_rcc.commands import configure
+
 
 def main() -> None:
     """Main entry point for genx-rcc console script."""
-    parser = ArgumentParser("GenX-RCC CLI")
+    parser = ArgumentParser("GenX-RCC CLI", description="University of Chicago RCC configuration scripts for GenX3.")
+    subparsers = parser.add_subparsers(dest="command", metavar="<command>")
 
-    # List of CLI arguments
+    subparsers.add_parser("configure", help="Interactively configure the GenX3 installation.")
+
     args = parser.parse_args()
 
-    parser.print_help()
+    match args.command:
+        case "configure":
+            configure.run(args)
+        case _:
+            parser.print_help()
 
