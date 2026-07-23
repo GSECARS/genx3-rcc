@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # ----------------------------------------------------------------------------------
 # Project: GenX3-RCC
 # File: genx3_rcc/commands/__init__.py
