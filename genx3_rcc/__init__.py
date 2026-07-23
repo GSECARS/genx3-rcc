@@ -11,7 +11,7 @@
 
 from argparse import ArgumentParser
 
-from genx3_rcc.commands import configure
+from genx3_rcc.commands import configure, create_files
 
 
 def main() -> None:
@@ -20,12 +20,15 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", metavar="<command>")
 
     subparsers.add_parser("configure", help="Interactively configure the GenX3 installation.")
+    subparsers.add_parser("create-files", help="Generate start_genx3 and sbatch_genx3.example from config.")
 
     args = parser.parse_args()
 
     match args.command:
         case "configure":
             configure.run(args)
+        case "create-files":
+            create_files.run(args)
         case _:
             parser.print_help()
 
