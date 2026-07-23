@@ -21,9 +21,9 @@ class GenXConfig:
     anaconda_module: str = "anaconda-2021.05"
     gcc_module: str = "gcc/12.2.0"
     environment_name: str = "genxENV"
-    python_version: str = "3.13"
-    anaconda_packages: str = "h5py mpi4py wxpython"
-    pypi_packages: str = "matplotlib appdirs scipy numba psutil pymysql vtk genx3"
+    python_version: str = "3.9"
+    anaconda_packages: str = "appdirs contourpy h5py matplotlib mpi4py numba psutil pymysql scipy vtk wxpython"
+    pypi_packages: str = "genx3"
     custom_model_path: str = "models"
 
     def save(self, path: Path = CONFIG_FILE) -> None:
