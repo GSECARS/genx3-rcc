@@ -18,12 +18,12 @@ CONFIG_FILE = Path("genx3.conf")
 @dataclass
 class GenXConfig:
 
-    anaconda_module: str = "anaconda-2021.02"
+    anaconda_module: str = "anaconda-2021.05"
     gcc_module: str = "gcc/12.2.0"
     environment_name: str = "genxENV"
     python_version: str = "3.13"
-    anaconda_packages: str = "mpi4py wxpython=4.1.1"
-    pypi_packages: str = "matplotlib appdirs h5py scipy numba psutil pymysql vtk genx3"
+    anaconda_packages: str = "h5py mpi4py wxpython"
+    pypi_packages: str = "matplotlib appdirs scipy numba psutil pymysql vtk genx3"
     custom_model_path: str = "models"
 
     def save(self, path: Path = CONFIG_FILE) -> None:
