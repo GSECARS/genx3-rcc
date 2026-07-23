@@ -8,7 +8,7 @@
 # Copyright (c) 2026 Christofanis Skordas, The University of Chicago
 # ----------------------------------------------------------------------------------
 
-from genx3_rcc.commands import configure, create_files
+from genx3_rcc.commands import configure, create_files, install
 
-__all__ = ["configure", "create_files"]
+__all__ = ["configure", "create_files", "install"]
 
