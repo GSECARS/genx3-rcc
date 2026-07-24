@@ -22,6 +22,77 @@ def _shell(cmd: str) -> None:
     subprocess.run(["bash", "--login", "-c", cmd], check=True)
 
 
+_SPLASH_PATCHES = [
+    # 1. Add _safe_destroy_splash helper and make WriteSplash resilient
+    (
+        "    def WriteSplash(self, text, progress=0.0):\n"
+        "        image = self.splash.GetBitmap()\n"
+        "        self._draw_bmp(image, text, progress=progress)\n"
+        "        self.splash.Refresh()\n"
+        "        self.splash.Update()\n"
+        "        wx.YieldIfNeeded()\n",
+        "    def _safe_destroy_splash(self):\n"
+        "        try:\n"
+        "            self.splash.Destroy()\n"
+        "        except RuntimeError:\n"
+        "            pass\n"
+        "\n"
+        "    def WriteSplash(self, text, progress=0.0):\n"
+        "        try:\n"
+        "            image = self.splash.GetBitmap()\n"
+        "        except RuntimeError:\n"
+        "            return\n"
+        "        self._draw_bmp(image, text, progress=progress)\n"
+        "        try:\n"
+        "            self.splash.Refresh()\n"
+        "            self.splash.Update()\n"
+        "        except RuntimeError:\n"
+        "            return\n"
+        "        wx.YieldIfNeeded()\n",
+    ),
+    # 2. Guard the direct self.splash.Destroy() call
+    (
+        "        if self.open_file is None:\n"
+        "            self.splash.Destroy()\n"
+        "            if first_init:\n",
+        "        if self.open_file is None:\n"
+        "            try:\n"
+        "                self.splash.Destroy()\n"
+        "            except RuntimeError:\n"
+        "                pass\n"
+        "            if first_init:\n",
+    ),
+    # 3. Replace wx.CallAfter(self.splash.Destroy) with _safe_destroy_splash
+    (
+        "            wx.CallAfter(self.splash.Destroy)\n"
+        "            return 1\n",
+        "            wx.CallAfter(self._safe_destroy_splash)\n"
+        "            return 1\n",
+    ),
+    (
+        "        wx.CallAfter(self.splash.Destroy)\n"
+        "        wx.CallLater(",
+        "        wx.CallAfter(self._safe_destroy_splash)\n"
+        "        wx.CallLater(",
+    ),
+]
+
+
+def _patch_main_window(env_path: Path, python_version: str) -> None:
+    target = env_path / "lib" / f"python{python_version}" / "site-packages" / "genx" / "gui" / "main_window.py"
+    if not target.exists():
+        print(f"Warning: {target} not found, skipping splash patch.")
+        return
+    source = target.read_text()
+    for old, new in _SPLASH_PATCHES:
+        if old in source:
+            source = source.replace(old, new)
+        elif new not in source:
+            print(f"Warning: splash patch chunk not found and not already applied:\n  {old[:60]!r}...")
+    target.write_text(source)
+    print(f"Splash patch applied to {target}")
+
+
 def run(args: Namespace) -> None:
     if not CONFIG_FILE.exists():
         print(f"Error: {CONFIG_FILE} not found. Run 'genx-rcc configure' first.")
@@ -52,6 +123,9 @@ def run(args: Namespace) -> None:
     pip = env_path / "bin" / "pip"
     subprocess.run([str(pip), "install", "-U", "pip", "setuptools"], check=True)
     subprocess.run([str(pip), "install"] + config.pypi_packages.split(), check=True)
+
+    print("Applying splash screen patch...")
+    _patch_main_window(env_path, config.python_version)
 
     print("Copying custom models...")
     models_dir = env_path / "lib" / f"python{config.python_version}" / "site-packages" / "genx" / "models"
