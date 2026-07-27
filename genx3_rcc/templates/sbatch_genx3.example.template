@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# ----------------------------------------------------------------------------------
+# Project: Genx3-RCC
+# File: genx3_rcc/templates/sbatch_genx3.example.template
+# ----------------------------------------------------------------------------------
+# Purpose:
+# This is a template file for an sbatch script.
+# ----------------------------------------------------------------------------------
+# Copyright (c) 2026 Christofanis Skordas, The University of Chicago
+# ----------------------------------------------------------------------------------
+
+#SBATCH --job-name=foo
+#SBATCH --output=foo.out
+#SBATCH --error=foo.err
+#SBATCH --time=00:05:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=2
+##SBATCH --mem-per-cpu=500
+#SBATCH --constraint=ib
+##SBATCH --mail-type=BEGIN,END,FAIL
+
+# Load required modules
+module load python/${anaconda_module}
+module load ${gcc_module}
+source '/software/python-${anaconda_module}-el7-x86_64/etc/profile.d/conda.sh'
+
+# Activate genx environment
+conda activate ${environment_name}
+
+echo "job started at `date`"
+echo "-----------------------"
+
+mpirun genx --mpi --mgen=10000 --km=0.8 --kr=0.6 --error /path/to/input.hgx /path/to/output.hgx
+
+echo "-----------------------"
+echo "job finished at `date`"
+

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# ----------------------------------------------------------------------------------
+# Project: Genx3-RCC
+# File: genx3_rcc/templates/start_genx3.template
+# ----------------------------------------------------------------------------------
+# Purpose:
+# This is a template file for the genx3 GUI startup script.
+# ----------------------------------------------------------------------------------
+# Copyright (c) 2026 Christofanis Skordas, The University of Chicago
+# ----------------------------------------------------------------------------------
+
+# Load required modules
+module load python/${anaconda_module}
+module load ${gcc_module}
+source '/software/python-${anaconda_module}-el7-x86_64/etc/profile.d/conda.sh'
+
+# Activate genx environment
+conda activate ${environment_name}
+
+# Start genx3
+genx
+

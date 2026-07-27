@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# ----------------------------------------------------------------------------------
+# Project: GenX3-RCC
+# File: setup
+# ----------------------------------------------------------------------------------
+# Purpose:
+# Loads uv and runs the full GenX3 setup sequence.
+# ----------------------------------------------------------------------------------
+# Copyright (c) 2026 Christofanis Skordas, The University of Chicago
+# ----------------------------------------------------------------------------------
+
+module load uv
+
+uv sync
+uv run genx-rcc configure
+uv run genx-rcc create-files
+uv run genx-rcc install
