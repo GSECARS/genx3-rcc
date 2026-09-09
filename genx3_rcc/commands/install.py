@@ -78,6 +78,46 @@ _SPLASH_PATCHES = [
 ]
 
 
+_PARAMETERGRID_PATCHES = [
+    # Guard the NOTIFY_ROWS_DELETED message so it is only sent when rows actually
+    # exist.  Newer wx raises a C++ assertion when numRows=0 is passed to
+    # Redimension(), which crashes on startup with an empty parameter grid.
+    (
+        "        if clear:\n"
+        "            # Start by deleting all rows:\n"
+        "            msg = gridlib.GridTableMessage(\n"
+        "                self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, self.parent.GetNumberRows()\n"
+        "            )\n"
+        "            self.pars = parameters.Parameters()\n"
+        "            self.GetView().ProcessTableMessage(msg)\n",
+        "        if clear:\n"
+        "            # Start by deleting all rows:\n"
+        "            old_rows = self.parent.GetNumberRows()\n"
+        "            self.pars = parameters.Parameters()\n"
+        "            if old_rows > 0:\n"
+        "                msg = gridlib.GridTableMessage(\n"
+        "                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, old_rows\n"
+        "                )\n"
+        "                self.GetView().ProcessTableMessage(msg)\n",
+    ),
+]
+
+
+def _patch_parametergrid(env_path: Path, python_version: str) -> None:
+    target = env_path / "lib" / f"python{python_version}" / "site-packages" / "genx" / "gui" / "parametergrid.py"
+    if not target.exists():
+        print(f"Warning: {target} not found, skipping parametergrid patch.")
+        return
+    source = target.read_text()
+    for old, new in _PARAMETERGRID_PATCHES:
+        if old in source:
+            source = source.replace(old, new)
+        elif new not in source:
+            print(f"Warning: parametergrid patch chunk not found and not already applied:\n  {old[:60]!r}...")
+    target.write_text(source)
+    print(f"Parametergrid patch applied to {target}")
+
+
 def _patch_main_window(env_path: Path, python_version: str) -> None:
     target = env_path / "lib" / f"python{python_version}" / "site-packages" / "genx" / "gui" / "main_window.py"
     if not target.exists():
@@ -121,8 +161,9 @@ def run(args: Namespace) -> None:
     subprocess.run([str(pip), "install", "-U", "pip", "setuptools"], check=True)
     subprocess.run([str(pip), "install"] + config.pypi_packages.split(), check=True)
 
-    print("Applying splash screen patch...")
+    print("Applying patches...")
     _patch_main_window(env_path, config.python_version)
+    _patch_parametergrid(env_path, config.python_version)
 
     print("Copying custom models...")
     models_dir = env_path / "lib" / f"python{config.python_version}" / "site-packages" / "genx" / "models"
