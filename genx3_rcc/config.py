@@ -18,7 +18,7 @@ CONFIG_FILE = Path("genx3.conf")
 @dataclass
 class GenXConfig:
 
-    anaconda_module: str = "anaconda-2021.05"
+    anaconda_module: str = "python/miniforge-26.5.3"
     gcc_module: str = "gcc/12.2.0"
     environment_name: str = "genxENV"
     python_version: str = "3.13"

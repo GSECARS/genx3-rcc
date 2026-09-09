@@ -113,9 +113,6 @@ def run(args: Namespace) -> None:
 
     init = f"module load python/{config.anaconda_module} && module load {config.gcc_module} && source '{conda_sh}'"
 
-    print("Adding conda-forge channel...")
-    _shell(f"{init} && conda config --add channels conda-forge")
-
     print(f"Creating environment '{config.environment_name}'...")
     _shell(f"{init} && conda create -n {config.environment_name} python={config.python_version} {config.anaconda_packages} --yes")
 
