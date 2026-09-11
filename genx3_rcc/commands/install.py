@@ -79,9 +79,23 @@ _SPLASH_PATCHES = [
 
 
 _PARAMETERGRID_PATCHES = [
-    # Guard the NOTIFY_ROWS_DELETED message so it is only sent when rows actually
-    # exist.  Newer wx raises a C++ assertion when numRows=0 is passed to
-    # Redimension(), which crashes on startup with an empty parameter grid.
+    # Patch 1: add _notified_rows counter to __init__ so we can track how many
+    # rows we have actually told the grid about via NOTIFY messages.
+    # Newer wxpython's SetTable() no longer pre-loads m_numRows from the table,
+    # so grid.GetNumberRows() returns the table count (1) while m_numRows is 0.
+    # Deleting "1 row" from a 0-row grid fires the wx C++ assertion and crashes.
+    (
+        "        self.pars = parameters.Parameters()\n"
+        "\n"
+        "        self.data_types = [\n",
+        "        self.pars = parameters.Parameters()\n"
+        "        self._notified_rows = 0\n"
+        "\n"
+        "        self.data_types = [\n",
+    ),
+    # Patch 2: replace the clear-branch of SetParameters to use _notified_rows
+    # instead of grid.GetNumberRows(), and keep _notified_rows in sync after
+    # the NOTIFY_ROWS_APPENDED so subsequent calls also work correctly.
     (
         "        if clear:\n"
         "            # Start by deleting all rows:\n"
@@ -89,16 +103,45 @@ _PARAMETERGRID_PATCHES = [
         "                self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, self.parent.GetNumberRows()\n"
         "            )\n"
         "            self.pars = parameters.Parameters()\n"
-        "            self.GetView().ProcessTableMessage(msg)\n",
+        "            self.GetView().ProcessTableMessage(msg)\n"
+        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+        "            self.GetView().ProcessTableMessage(msg)\n"
+        "\n"
+        "            self.GetView().ForceRefresh()\n"
+        "\n"
+        "            self.pars = pars\n"
+        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, self.pars.get_len_rows() + 1)\n"
+        "            self.GetView().ProcessTableMessage(msg)\n"
+        "\n"
+        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+        "            self.GetView().ProcessTableMessage(msg)\n"
+        "\n"
+        "            self.GetView().ForceRefresh()\n",
         "        if clear:\n"
-        "            # Start by deleting all rows:\n"
-        "            old_rows = self.parent.GetNumberRows()\n"
+        "            # Start by deleting all rows (only if we have told the grid about any):\n"
+        "            rows_to_delete = self._notified_rows\n"
         "            self.pars = parameters.Parameters()\n"
-        "            if old_rows > 0:\n"
+        "            if rows_to_delete > 0:\n"
         "                msg = gridlib.GridTableMessage(\n"
-        "                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, old_rows\n"
+        "                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, rows_to_delete\n"
         "                )\n"
-        "                self.GetView().ProcessTableMessage(msg)\n",
+        "                self.GetView().ProcessTableMessage(msg)\n"
+        "            self._notified_rows = 0\n"
+        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+        "            self.GetView().ProcessTableMessage(msg)\n"
+        "\n"
+        "            self.GetView().ForceRefresh()\n"
+        "\n"
+        "            self.pars = pars\n"
+        "            new_rows = self.pars.get_len_rows() + 1\n"
+        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, new_rows)\n"
+        "            self.GetView().ProcessTableMessage(msg)\n"
+        "            self._notified_rows = new_rows\n"
+        "\n"
+        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+        "            self.GetView().ProcessTableMessage(msg)\n"
+        "\n"
+        "            self.GetView().ForceRefresh()\n",
     ),
 ]
 

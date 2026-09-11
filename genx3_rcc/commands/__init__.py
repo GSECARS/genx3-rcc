@@ -9,7 +9,7 @@
 # Copyright (c) 2026 Christofanis Skordas, The University of Chicago
 # ----------------------------------------------------------------------------------
 
-from genx3_rcc.commands import clean, configure, create_files, install
+from genx3_rcc.commands import clean, configure, create_files, install, patch
 
-__all__ = ["clean", "configure", "create_files", "install"]
+__all__ = ["clean", "configure", "create_files", "install", "patch"]
 

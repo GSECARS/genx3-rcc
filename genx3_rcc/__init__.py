@@ -11,7 +11,7 @@
 
 from argparse import ArgumentParser
 
-from genx3_rcc.commands import clean, configure, create_files, install
+from genx3_rcc.commands import clean, configure, create_files, install, patch
 
 
 def main() -> None:
@@ -23,6 +23,7 @@ def main() -> None:
     subparsers.add_parser("create-files", help="Generate start_genx3 and sbatch_genx3.example from config.")
     subparsers.add_parser("install", help="Set up the anaconda environment and install GenX3.")
     subparsers.add_parser("clean", help="Remove the GenX3 anaconda environment.")
+    subparsers.add_parser("patch", help="Apply source patches to an existing GenX3 environment.")
 
     args = parser.parse_args()
 
@@ -35,6 +36,8 @@ def main() -> None:
             install.run(args)
         case "clean":
             clean.run(args)
+        case "patch":
+            patch.run(args)
         case _:
             parser.print_help()
 
