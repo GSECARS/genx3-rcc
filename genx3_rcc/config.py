@@ -9,6 +9,7 @@
 # Copyright (c) 2026 Christofanis Skordas, The University of Chicago
 # ----------------------------------------------------------------------------------
 
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,6 +26,28 @@ class GenXConfig:
     anaconda_packages: str = "contourpy h5py matplotlib mpi4py numba scipy wxpython"
     pypi_packages: str = "appdirs psutil pymysql vtk genx3"
     custom_model_path: str = "models"
+
+    @property
+    def env_path(self) -> Path:
+        """Absolute path to the conda environment directory."""
+        return Path.home() / ".conda" / "envs" / self.environment_name
+
+    @property
+    def python_bin(self) -> Path:
+        """Absolute path to the Python binary inside the conda environment."""
+        return self.env_path / "bin" / "python"
+
+    def get_python_version(self) -> str:
+        """Ask the environment's own Python binary for its major.minor version.
+
+        This is always authoritative — it reflects what conda actually created,
+        regardless of what python_version was requested in the config.
+        """
+        result = subprocess.run(
+            [str(self.python_bin), "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"],
+            capture_output=True, text=True, check=True,
+        )
+        return result.stdout.strip()
 
     def save(self, path: Path = CONFIG_FILE) -> None:
         lines = [

@@ -78,71 +78,128 @@ _SPLASH_PATCHES = [
 ]
 
 
+# Each entry is a list of candidate (old, new) pairs tried in order.
+# The first matching candidate wins, allowing the patcher to handle multiple
+# genx3 versions whose code differs at that call site.
 _PARAMETERGRID_PATCHES = [
     # Patch 1: add _notified_rows counter to __init__ so we can track how many
     # rows we have actually told the grid about via NOTIFY messages.
-    # Newer wxpython's SetTable() no longer pre-loads m_numRows from the table,
+    # Newer wxPython's SetTable() no longer pre-loads m_numRows from the table,
     # so grid.GetNumberRows() returns the table count (1) while m_numRows is 0.
     # Deleting "1 row" from a 0-row grid fires the wx C++ assertion and crashes.
-    (
-        "        self.pars = parameters.Parameters()\n"
-        "\n"
-        "        self.data_types = [\n",
-        "        self.pars = parameters.Parameters()\n"
-        "        self._notified_rows = 0\n"
-        "\n"
-        "        self.data_types = [\n",
-    ),
+    [
+        (
+            "        self.pars = parameters.Parameters()\n"
+            "\n"
+            "        self.data_types = [\n",
+            "        self.pars = parameters.Parameters()\n"
+            "        self._notified_rows = 0\n"
+            "\n"
+            "        self.data_types = [\n",
+        ),
+    ],
     # Patch 2: replace the clear-branch of SetParameters to use _notified_rows
     # instead of grid.GetNumberRows(), and keep _notified_rows in sync after
     # the NOTIFY_ROWS_APPENDED so subsequent calls also work correctly.
-    (
-        "        if clear:\n"
-        "            # Start by deleting all rows:\n"
-        "            msg = gridlib.GridTableMessage(\n"
-        "                self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, self.parent.GetNumberRows()\n"
-        "            )\n"
-        "            self.pars = parameters.Parameters()\n"
-        "            self.GetView().ProcessTableMessage(msg)\n"
-        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
-        "            self.GetView().ProcessTableMessage(msg)\n"
-        "\n"
-        "            self.GetView().ForceRefresh()\n"
-        "\n"
-        "            self.pars = pars\n"
-        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, self.pars.get_len_rows() + 1)\n"
-        "            self.GetView().ProcessTableMessage(msg)\n"
-        "\n"
-        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
-        "            self.GetView().ProcessTableMessage(msg)\n"
-        "\n"
-        "            self.GetView().ForceRefresh()\n",
-        "        if clear:\n"
-        "            # Start by deleting all rows (only if we have told the grid about any):\n"
-        "            rows_to_delete = self._notified_rows\n"
-        "            self.pars = parameters.Parameters()\n"
-        "            if rows_to_delete > 0:\n"
-        "                msg = gridlib.GridTableMessage(\n"
-        "                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, rows_to_delete\n"
-        "                )\n"
-        "                self.GetView().ProcessTableMessage(msg)\n"
-        "            self._notified_rows = 0\n"
-        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
-        "            self.GetView().ProcessTableMessage(msg)\n"
-        "\n"
-        "            self.GetView().ForceRefresh()\n"
-        "\n"
-        "            self.pars = pars\n"
-        "            new_rows = self.pars.get_len_rows() + 1\n"
-        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, new_rows)\n"
-        "            self.GetView().ProcessTableMessage(msg)\n"
-        "            self._notified_rows = new_rows\n"
-        "\n"
-        "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
-        "            self.GetView().ProcessTableMessage(msg)\n"
-        "\n"
-        "            self.GetView().ForceRefresh()\n",
-    ),
+    #
+    # Variant A: genx3 >= 3.8.x — NOTIFY_ROWS_DELETED args are (start, start)
+    # Variant B: genx3 <  3.8.x — NOTIFY_ROWS_DELETED args are (0, count)
+    [
+        (
+            "        if clear:\n"
+            "            # Start by deleting all rows:\n"
+            "            msg = gridlib.GridTableMessage(\n"
+            "                self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, self.parent.GetNumberRows(), self.parent.GetNumberRows()\n"
+            "            )\n"
+            "            self.pars = parameters.Parameters()\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            self.GetView().ForceRefresh()\n"
+            "\n"
+            "            self.pars = pars\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, self.pars.get_len_rows() + 1)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            self.GetView().ForceRefresh()\n",
+            "        if clear:\n"
+            "            # Start by deleting all rows (only if we have told the grid about any):\n"
+            "            rows_to_delete = self._notified_rows\n"
+            "            self.pars = parameters.Parameters()\n"
+            "            if rows_to_delete > 0:\n"
+            "                msg = gridlib.GridTableMessage(\n"
+            "                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, rows_to_delete\n"
+            "                )\n"
+            "                self.GetView().ProcessTableMessage(msg)\n"
+            "            self._notified_rows = 0\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            self.GetView().ForceRefresh()\n"
+            "\n"
+            "            self.pars = pars\n"
+            "            new_rows = self.pars.get_len_rows() + 1\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, new_rows)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "            self._notified_rows = new_rows\n"
+            "\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            self.GetView().ForceRefresh()\n",
+        ),
+        (
+            "        if clear:\n"
+            "            # Start by deleting all rows:\n"
+            "            msg = gridlib.GridTableMessage(\n"
+            "                self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, self.parent.GetNumberRows()\n"
+            "            )\n"
+            "            self.pars = parameters.Parameters()\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            self.GetView().ForceRefresh()\n"
+            "\n"
+            "            self.pars = pars\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, self.pars.get_len_rows() + 1)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            self.GetView().ForceRefresh()\n",
+            "        if clear:\n"
+            "            # Start by deleting all rows (only if we have told the grid about any):\n"
+            "            rows_to_delete = self._notified_rows\n"
+            "            self.pars = parameters.Parameters()\n"
+            "            if rows_to_delete > 0:\n"
+            "                msg = gridlib.GridTableMessage(\n"
+            "                    self, gridlib.GRIDTABLE_NOTIFY_ROWS_DELETED, 0, rows_to_delete\n"
+            "                )\n"
+            "                self.GetView().ProcessTableMessage(msg)\n"
+            "            self._notified_rows = 0\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            self.GetView().ForceRefresh()\n"
+            "\n"
+            "            self.pars = pars\n"
+            "            new_rows = self.pars.get_len_rows() + 1\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, new_rows)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "            self._notified_rows = new_rows\n"
+            "\n"
+            "            msg = gridlib.GridTableMessage(self, gridlib.GRIDTABLE_REQUEST_VIEW_GET_VALUES)\n"
+            "            self.GetView().ProcessTableMessage(msg)\n"
+            "\n"
+            "            self.GetView().ForceRefresh()\n",
+        ),
+    ],
 ]
 
 
@@ -152,11 +209,18 @@ def _patch_parametergrid(env_path: Path, python_version: str) -> None:
         print(f"Warning: {target} not found, skipping parametergrid patch.")
         return
     source = target.read_text()
-    for old, new in _PARAMETERGRID_PATCHES:
-        if old in source:
-            source = source.replace(old, new)
-        elif new not in source:
-            print(f"Warning: parametergrid patch chunk not found and not already applied:\n  {old[:60]!r}...")
+    for candidates in _PARAMETERGRID_PATCHES:
+        applied = False
+        for old, new in candidates:
+            if old in source:
+                source = source.replace(old, new)
+                applied = True
+                break
+            elif new in source:
+                applied = True  # already patched
+                break
+        if not applied:
+            print(f"Warning: parametergrid patch chunk not found and not already applied:\n  {candidates[0][0][:60]!r}...")
     target.write_text(source)
     print(f"Parametergrid patch applied to {target}")
 
@@ -184,7 +248,7 @@ def run(args: Namespace) -> None:
     config = GenXConfig.load(CONFIG_FILE)
 
     conda_sh = f"/software/python-{config.anaconda_module}-el7-x86_64/etc/profile.d/conda.sh"
-    env_path = Path.home() / ".conda" / "envs" / config.environment_name
+    env_path = config.env_path
 
     if env_path.is_dir():
         print(f"Environment '{config.environment_name}' already exists. Aborting.")
@@ -200,16 +264,19 @@ def run(args: Namespace) -> None:
     _shell(f"{init} && conda create -n {config.environment_name} python={config.python_version} {config.anaconda_packages} --yes")
 
     print("Updating pip and installing PyPI packages...")
-    pip = env_path / "bin" / "pip"
-    subprocess.run([str(pip), "install", "-U", "pip", "setuptools"], check=True)
-    subprocess.run([str(pip), "install"] + config.pypi_packages.split(), check=True)
+    subprocess.run([str(config.env_path / "bin" / "pip"), "install", "-U", "pip", "setuptools"], check=True)
+    subprocess.run([str(config.env_path / "bin" / "pip"), "install"] + config.pypi_packages.split(), check=True)
+
+    # Use the environment's own Python binary to get the real version — this is
+    # authoritative regardless of what was requested in config.
+    python_version = config.get_python_version()
 
     print("Applying patches...")
-    _patch_main_window(env_path, config.python_version)
-    _patch_parametergrid(env_path, config.python_version)
+    _patch_main_window(env_path, python_version)
+    _patch_parametergrid(env_path, python_version)
 
     print("Copying custom models...")
-    models_dir = env_path / "lib" / f"python{config.python_version}" / "site-packages" / "genx" / "models"
+    models_dir = env_path / "lib" / f"python{python_version}" / "site-packages" / "genx" / "models"
     custom = Path(config.custom_model_path)
     if custom.is_file():
         shutil.copy(custom, models_dir)

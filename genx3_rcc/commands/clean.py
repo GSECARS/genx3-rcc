@@ -13,7 +13,6 @@ import shutil
 import subprocess
 import time
 from argparse import Namespace
-from pathlib import Path
 
 from genx3_rcc.config import CONFIG_FILE, GenXConfig
 
@@ -25,7 +24,7 @@ def _shell(cmd: str) -> None:
 def run(args: Namespace) -> None:
     config = GenXConfig.load(CONFIG_FILE) if CONFIG_FILE.exists() else GenXConfig()
 
-    env_path = Path.home() / ".conda" / "envs" / config.environment_name
+    env_path = config.env_path
 
     if not env_path.is_dir():
         print(f"Environment '{config.environment_name}' does not exist. Aborting.")

@@ -22,15 +22,13 @@
 # Load required modules
 module load python/${anaconda_module}
 module load ${gcc_module}
-source '/software/python-${anaconda_module}-el7-x86_64/etc/profile.d/conda.sh'
-
-# Activate genx environment
-conda activate ${environment_name}
 
 echo "job started at `date`"
 echo "-----------------------"
 
-mpirun genx --mpi --mgen=10000 --km=0.8 --kr=0.6 --error /path/to/input.hgx /path/to/output.hgx
+# Run GenX3 using the environment's own Python binary directly.
+# This avoids any ambiguity from conda activate picking up the wrong Python.
+mpirun ${python_bin} -m genx.run --mpi --mgen=10000 --km=0.8 --kr=0.6 --error /path/to/input.hgx /path/to/output.hgx
 
 echo "-----------------------"
 echo "job finished at `date`"

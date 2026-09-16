@@ -37,6 +37,9 @@ def run(args: Namespace) -> None:
         "anaconda_module": config.anaconda_module,
         "gcc_module": config.gcc_module,
         "environment_name": config.environment_name,
+        # Use the absolute path to the environment's Python binary so the
+        # generated scripts never rely on conda activate resolving the right one.
+        "python_bin": str(config.python_bin),
     }
 
     for template_name, output_name in [

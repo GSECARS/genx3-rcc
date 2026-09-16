@@ -12,11 +12,8 @@
 # Load required modules
 module load python/${anaconda_module}
 module load ${gcc_module}
-source '/software/python-${anaconda_module}-el7-x86_64/etc/profile.d/conda.sh'
 
-# Activate genx environment
-conda activate ${environment_name}
-
-# Start genx3
-genx
+# Start GenX3 using the environment's own Python binary directly.
+# This avoids any ambiguity from conda activate picking up the wrong Python.
+${python_bin} -m genx.run
 
