@@ -23,6 +23,11 @@
 module load python/${anaconda_module}
 module load ${gcc_module}
 
+source '/software/python-${anaconda_module}-el7-x86_64/etc/profile.d/conda.sh'
+
+# Activate genx environment
+conda activate ${environment_name}
+
 echo "job started at `date`"
 echo "-----------------------"
 
